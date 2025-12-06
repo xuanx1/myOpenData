@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Malaysian Transportation Network - 2025</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- Gotham Font -->
+    <link href="https://fonts.cdnfonts.com/css/gotham" rel="stylesheet">
+    
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        /* Slim scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 3px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #d0d0d0;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+        
+        #map { 
+            height: 100vh; 
+            width: 100%; 
+        }
+        
+        .tab-selector {
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            z-index: 9999;
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 10px;
+            border: 2px solid grey;
+            border-radius: 4px;
+        }
+        
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-family: 'Gotham', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            border-radius: 3px;
+        }
+        
+        .tab-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%);
+            color: white;
+        }
+        
+        .arrow-icon {
+            background: transparent !important;
+            border: none !important;
+            cursor: pointer;
+            opacity: 0.9;
+        }
+        
+        .arrow-icon:hover {
+            opacity: 1;
+        }
+        
+        .legend {
+            position: fixed; 
+            bottom: 20px; 
+            left: 20px; 
+            width: 300px; 
+            background-color: rgba(255, 255, 255, 0.85); 
+            border: 2px solid grey; 
+            z-index: 9999; 
+            font-size: 12px; 
+            padding: 12px;
+            font-family: 'Gotham', sans-serif;
+            border-radius: 4px;
+        }
+        
+        .legend h3 {
+            font-family: 'Gotham', sans-serif;
+            font-weight: 900;
+            font-size: 28px;
+            line-height: 1.4;
+            letter-spacing: 1.5px;
+            background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0 0 10px 0;
+        }
+        
+        .legend h4 {
+            font-family: 'Gotham', sans-serif;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: #333;
+            margin: 8px 0 5px 0;
+            text-transform: uppercase;
+        }
+        
+        .legend p {
+            margin: 4px 0;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .title {
+            position: fixed; 
+            top: 20px; 
+            right: 20px;
+            background: rgba(255, 255, 255, 0.85); 
+            padding: 15px 20px; 
+            border-radius: 4px;
+            border: 2px solid grey;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .title h3 {
+            margin: 0;
+            font-size: 24px;
+            font-family: 'Gotham', sans-serif;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            line-height: 1.4;
+            background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .title p {
+            margin: 5px 0 0 0;
+            font-family: 'Gotham', sans-serif;
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 0.5px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .stat-box {
+            background: transparent;
+            padding: 8px 0;
+            border-radius: 4px;
+            border-left: none;
+            box-shadow: none;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .stat-label {
+            color: #333;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-weight: 700;
+            color: #c06c84;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .top-routes-label {
+            color: #333;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        #topRoutesContainer {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .top-route-item {
+            font-size: 11px;
+            margin: 12px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .top-route-name {
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .top-route-riders {
+            color: #c06c84;
+            font-weight: 700;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .loading-container {
+            position: fixed; 
+            top: 80px; 
+            left: 20px; 
+            background: rgba(255, 255, 255, 0.85); 
+            padding: 12px; 
+            border: 2px solid grey;
+            z-index: 10000;
+            width: 300px;
+            font-family: 'Gotham', sans-serif;
+            border-radius: 4px;
+        }
+        
+        .loading-text {
+            font-size: 12px; 
+            color: #333; 
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-family: 'Gotham', sans-serif;
+        }
+        
+        .progress-bar {
+            width: 100%; 
+            height: 8px; 
+            background: #e0e0e0;
+            border: 1px solid grey; 
+            overflow: hidden;
+            border-radius: 2px;
+        }
+        
+        .progress-fill {
+            height: 100%; 
+            background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%);
+            width: 0%; 
+            transition: width 0.3s ease;
+        }
+        
+        .loading-details {
+            font-size: 10px; 
+            color: #666; 
+            margin-top: 6px;
+            font-family: 'Gotham', sans-serif;
+        }
+        
+        .leaflet-tooltip {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        .leaflet-tooltip:before,
+        .leaflet-tooltip:after {
+            display: none !important;
+        }
+
+        .tooltip-content {
+            font-family: 'Gotham', sans-serif;
+            background: rgba(255, 255, 255, 0.85);
+            border: 2px solid grey;
+            padding: 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .tooltip-content h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .route-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .route-stat {
+            background: #f9f9f9;
+            padding: 8px;
+            border-left: 3px solid #c06c84;
+            border-radius: 2px;
+        }
+
+        .route-stat-label {
+            font-size: 9px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .route-stat-value {
+            font-size: 13px;
+            font-weight: 700;
+            color: #333;
+            margin-top: 2px;
+        }
+
+        .chart-container {
+            height: 150px;
+            margin: 10px 0;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingBar" class="loading-container">
+        <div class="loading-text">Loading West Malaysia Transportation Data...</div>
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <div id="loadingDetails" class="loading-details">Initializing...</div>
+    </div>
+
+    <div class="tab-selector" id="tabSelector">
+        <button class="tab-btn active" data-tab="all">ALL ROUTES</button>
+        <button class="tab-btn" data-tab="shuttle">SHUTTLE TEBRAU</button>
+        <button class="tab-btn" data-tab="ets">ETS</button>
+        <button class="tab-btn" data-tab="komuter">KOMUTER</button>
+        <button class="tab-btn" data-tab="intercity">INTERCITY BUS</button>
+    </div>
+
+    <div id="map"></div>
+    
+    <div class="legend" id="legend">
+        <div style="line-height: 1.4; margin-bottom: 16px; margin-top: -6px;">
+            <div style="font-size: 35px; font-family: 'Gotham', sans-serif; font-weight: 900; letter-spacing: 1.5px; background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">CONNECTIVITY</div>
+            <div style="font-size: 14px; font-family: 'Gotham', sans-serif; font-weight: 900; letter-spacing: 1.5px; background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">in <span style="font-size: 18px;">WEST MALAYSIA</span></div>
+        </div>
+        <h4>RIDERSHIP</h4>
+        <p><span style="font-size:14px; color:#f67280">●</span> Circle size = Total ridership<br>
+           <span style="font-size:14px; color:#cc9767">━</span> Line thickness = Route traffic</p>
+        <h4 style="margin-top: 16px;">SERVICE TYPES</h4>
+        <p><span style="font-size:12px; color:#c06c84">■</span> Shuttle Tebrau<br>
+           <span style="font-size:12px; color:#f8b195">■</span> ETS Rail<br>
+           <span style="font-size:12px; color:#FFE66D">■</span> Komuter Rail<br>
+           <span style="font-size:12px; color:#6c567b">■</span> Intercity Bus</p>
+    </div>
+
+    <div class="title" id="statsTitle">
+        <h3 id="titleText">ALL SERVICES</h3>
+        <p id="titleSubtext">2025 Ridership Data</p>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div id="topRoutesContainer" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0;"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Transportation service configuration
+        const services = {
+            shuttle: { 
+                name: 'SHUTTLE TEBRAU', 
+                color: '#c06c84', 
+                file: 'data/shuttle_tebrau_2025.csv',
+                description: 'JB Sentral ↔ Woodlands CIQ'
+            },
+            ets: { 
+                name: 'ETS RAIL', 
+                color: '#f8b195', 
+                file: 'data/ets_2025.csv',
+                description: 'Long-distance rail network'
+            },
+            komuter: { 
+                name: 'KOMUTER', 
+                color: '#FFE66D', 
+                file: 'data/komuter_2025.csv',
+                description: 'Urban rail network'
+            },
+            intercity: { 
+                name: 'INTERCITY BUS', 
+                color: '#6c567b', 
+                file: 'data/intercity_2025.csv',
+                description: 'Inter-city bus routes'
+            }
+        };
+
+        // Malaysian station/city coordinates
+        const stationCoordinates = {
+            // Shuttle Tebrau
+            'JB Sentral': { lat: 1.4471, lng: 103.7471, state: 'Johor' },
+            'Woodlands CIQ': { lat: 1.4462, lng: 103.7479, state: 'Singapore' },
+            
+            // ETS Rail Stations
+            'KL Sentral': { lat: 3.1372, lng: 101.6869, state: 'Kuala Lumpur' },
+            'Batu Gajah': { lat: 3.4167, lng: 101.5167, state: 'Perak' },
+            'Alor Setar': { lat: 6.1184, lng: 100.6788, state: 'Kedah' },
+            'Arau': { lat: 6.4333, lng: 100.2667, state: 'Perlis' },
+            'Padang Besar': { lat: 6.6411, lng: 100.2078, state: 'Kedah' },
+            'Kampar': { lat: 3.8167, lng: 101.5667, state: 'Perak' },
+            'Tanjong Malim': { lat: 3.2167, lng: 101.6333, state: 'Perak' },
+            'Ipoh': { lat: 4.5921, lng: 101.5901, state: 'Perak' },
+            'Sungai Petani': { lat: 5.6419, lng: 100.4919, state: 'Kedah' },
+            'Tasek Gelugor': { lat: 5.2833, lng: 100.5167, state: 'Kedah' },
+            'Kuala Kangsar': { lat: 4.7667, lng: 101.0667, state: 'Perak' },
+            'Taiping': { lat: 4.8419, lng: 100.7361, state: 'Perak' },
+            'Kepong Sentral': { lat: 3.1986, lng: 101.5769, state: 'Kuala Lumpur' },
+            'Rawang': { lat: 3.3306, lng: 101.5411, state: 'Selangor' },
+            'Slim River': { lat: 3.0667, lng: 101.6833, state: 'Perak' },
+            'Sungai Buloh': { lat: 3.2467, lng: 101.5539, state: 'Selangor' },
+            
+            // Intercity Bus Stations
+            'Segamat': { lat: 2.8167, lng: 102.8167, state: 'Johor' },
+            'Tanah Merah': { lat: 4.3086, lng: 103.0844, state: 'Kelantan' },
+            'Kuala Krau': { lat: 3.8167, lng: 102.0833, state: 'Pahang' },
+            'Jerantut': { lat: 4.0167, lng: 102.1333, state: 'Pahang' },
+            'Kuala Lipis': { lat: 4.2167, lng: 102.3167, state: 'Pahang' },
+            'Gemas': { lat: 2.7258, lng: 102.0423, state: 'Negeri Sembilan' },
+            'Tumpat': { lat: 6.3175, lng: 102.2406, state: 'Kelantan' },
+            'Pasir Mas': { lat: 6.0358, lng: 102.1317, state: 'Kelantan' },
+            'Gua Musang': { lat: 4.8667, lng: 102.4167, state: 'Kelantan' },
+            'Krambit': { lat: 4.5333, lng: 102.5167, state: 'Kelantan' },
+            'Wakaf Bharu': { lat: 6.2706, lng: 102.1861, state: 'Kelantan' },
+            'Kluang': { lat: 1.8386, lng: 103.3175, state: 'Johor' },
+            'Kempas Baru': { lat: 4.6667, lng: 102.3333, state: 'Kelantan' },
+            'Kulai': { lat: 1.6486, lng: 103.6294, state: 'Johor' },
+            'Bahau': { lat: 2.8333, lng: 102.3167, state: 'Negeri Sembilan' },
+            'Mentakab': { lat: 3.7333, lng: 102.2167, state: 'Pahang' }
+        };
+
+        // Global state
+        let currentTab = 'all';
+        let allRoutes = [];
+        let map;
+        let routeLines = [];
+        let stationMarkers = [];
+
+        // Loading progress tracker
+        const loadingProgress = {
+            progress: 0,
+            updateProgress: function(percent, message) {
+                this.progress = percent;
+                const progressFill = document.getElementById('progressFill');
+                const loadingDetails = document.getElementById('loadingDetails');
+                if (progressFill) progressFill.style.width = percent + '%';
+                if (loadingDetails) loadingDetails.textContent = message;
+                console.log(`📊 Loading: ${percent}% - ${message}`);
+            },
+            complete: function() {
+                const loadingBar = document.getElementById('loadingBar');
+                if (loadingBar) {
+                    setTimeout(() => {
+                        loadingBar.style.opacity = '0';
+                        loadingBar.style.transition = 'opacity 0.5s ease';
+                        setTimeout(() => loadingBar.style.display = 'none', 500);
+                    }, 800);
+                }
+                console.log('✅ All data loaded successfully!');
+            }
+        };
+
+        // Initialize map centered on Malaysia
+        map = L.map('map', { 
+            zoomControl: false,
+            minZoom: 7.4,
+            maxZoom: 18
+        }).setView([4.2105, 101.6964], 6);
+        
+        // Set bounds to West Malaysia only with padding
+        const westMalaysiaBounds = L.latLngBounds(
+            [0.8, 99.5],   // Southwest corner (with padding)
+            [8.0, 105.0]   // Northeast corner (with padding)
+        );
+        map.setMaxBounds(westMalaysiaBounds);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Contour styling for region boundaries
+        let contourPolygons = [];
+        const purpleToBlackShades = ['#cc9767', '#d5a878', '#deb989', '#e7ca9a'];
+        const offsetDistances = [0.05, 0.1, 0.15, 0.2];
+
+        // Function to create offset contours
+        function createOffsetContour(coords, distance) {
+            const offsetCoords = [];
+            
+            for (let i = 0; i < coords.length; i++) {
+                const prevIndex = (i - 1 + coords.length) % coords.length;
+                const nextIndex = (i + 1) % coords.length;
+                
+                const prev = coords[prevIndex];
+                const curr = coords[i];
+                const next = coords[nextIndex];
+                
+                // Calculate vectors from current point
+                const v1 = [curr[0] - prev[0], curr[1] - prev[1]];
+                const v2 = [next[0] - curr[0], next[1] - curr[1]];
+                
+                // Normalize vectors
+                const len1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1]);
+                const len2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1]);
+                
+                if (len1 > 0) {
+                    v1[0] /= len1;
+                    v1[1] /= len1;
+                }
+                if (len2 > 0) {
+                    v2[0] /= len2;
+                    v2[1] /= len2;
+                }
+                
+                // Calculate perpendicular vectors (rotate 90 degrees)
+                const perp1 = [-v1[1], v1[0]];
+                const perp2 = [-v2[1], v2[0]];
+                
+                // Average the perpendicular vectors for the normal at this point
+                let normal = [(perp1[0] + perp2[0]) / 2, (perp1[1] + perp2[1]) / 2];
+                const normalLen = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1]);
+                
+                if (normalLen > 0) {
+                    normal[0] /= normalLen;
+                    normal[1] /= normalLen;
+                }
+                
+                // Apply distance offset in the normal direction (negative for outward)
+                offsetCoords.push([
+                    curr[1] + normal[1] * distance,  // lat (positive for outward)
+                    curr[0] + normal[0] * distance   // lng (positive for outward)
+                ]);
+            }
+            
+            return offsetCoords;
+        }
+
+        // Load and display region boundaries from GeoJSON with contours
+        fetch('my.json')
+            .then(response => response.json())
+            .then(data => {
+                // Add main outline
+                L.geoJSON(data, {
+                    style: {
+                        color: '#cc9767',
+                        weight: 3,
+                        opacity: 0.8,
+                        fill: false
+                    }
+                }).addTo(map);
+                
+                // Extract coordinates from GeoJSON for contour creation
+                const features = data.features || [data];
+                features.forEach(feature => {
+                    if (feature.geometry && feature.geometry.type === 'Polygon') {
+                        const coords = feature.geometry.coordinates[0];
+                        
+                        // Create 4 offset contour rings (from inner to outer)
+                        for (let i = 0; i < 4; i++) {
+                            const bufferedCoords = createOffsetContour(coords, offsetDistances[i]);
+                            
+                            // Gradient: inner contour strongest (darkest, thickest), outer weakest (lightest, thinnest)
+                            const baseOpacity = (1.0 - (i * 0.2)) * 0.5; // Max 0.5, 0.4, 0.3, 0.2
+                            const lineWeight = 4 - i; // 4, 3, 2, 1
+                            
+                            // Apply initial fade based on current zoom level
+                            const currentZoom = map.getZoom();
+                            const fadeOpacity = currentZoom > 7 ? Math.max(0.1, 1 - ((currentZoom - 7) * 0.3)) : 1;
+                            const initialOpacity = baseOpacity * fadeOpacity;
+                            
+                            const contourPolygon = L.polygon(bufferedCoords, {
+                                fillColor: 'transparent',
+                                fillOpacity: 0,
+                                weight: lineWeight,
+                                opacity: initialOpacity,
+                                color: purpleToBlackShades[i]
+                            }).addTo(map);
+                            
+                            // Store reference for zoom-based opacity control
+                            contourPolygons.push(contourPolygon);
+                        }
+                    } else if (feature.geometry && feature.geometry.type === 'MultiPolygon') {
+                        // Handle MultiPolygon
+                        feature.geometry.coordinates.forEach(polygon => {
+                            const coords = polygon[0];
+                            
+                            for (let i = 0; i < 4; i++) {
+                                const bufferedCoords = createOffsetContour(coords, offsetDistances[i]);
+                                
+                                const baseOpacity = (1.0 - (i * 0.2)) * 0.5; // Max 0.5, 0.4, 0.3, 0.2
+                                const lineWeight = 4 - i; // 4, 3, 2, 1
+                                const currentZoom = map.getZoom();
+                                const fadeOpacity = currentZoom > 7 ? Math.max(0.1, 1 - ((currentZoom - 7) * 0.3)) : 1;
+                                const initialOpacity = baseOpacity * fadeOpacity;
+                                
+                                const contourPolygon = L.polygon(bufferedCoords, {
+                                    fillColor: 'transparent',
+                                    fillOpacity: 0,
+                                    weight: lineWeight,
+                                    opacity: initialOpacity,
+                                    color: purpleToBlackShades[i]
+                                }).addTo(map);
+                                
+                                contourPolygons.push(contourPolygon);
+                            }
+                        });
+                    }
+                });
+                
+                console.log('✅ Region boundaries and contours loaded');
+            })
+            .catch(error => console.error('❌ Error loading region boundaries:', error));
+        
+        // Add zoom event handler to fade contours when zooming in
+        map.on('zoomend', function() {
+            const currentZoom = map.getZoom();
+            const fadeOpacity = currentZoom > 7 ? Math.max(0.1, 1 - ((currentZoom - 7) * 0.3)) : 1;
+            
+            contourPolygons.forEach((polygon, index) => {
+                const contourIndex = index % 4;
+                const baseOpacity = (1.0 - (contourIndex * 0.2)) * 0.5; // Maintain gradient: max 0.5
+                polygon.setStyle({ opacity: baseOpacity * fadeOpacity });
+            });
+        });
+
+        // CSV Parser
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const values = lines[i].split(',');
+                const row = {};
+                headers.forEach((header, idx) => {
+                    row[header] = values[idx]?.trim();
+                });
+                data.push(row);
+            }
+            
+            return data;
+        }
+
+        // Load all service data
+        async function loadAllServices() {
+            loadingProgress.updateProgress(10, 'Loading transportation data...');
+            
+            const routeData = new Map(); // Key: "origin-destination", Value: { service, ridership, dates }
+            
+            for (const [key, service] of Object.entries(services)) {
+                loadingProgress.updateProgress(
+                    10 + (Object.keys(services).indexOf(key) * 20),
+                    `Loading ${service.name}...`
+                );
+                
+                try {
+                    const response = await fetch(service.file);
+                    if (!response.ok) {
+                        console.warn(`⚠️ Could not load ${service.file}`);
+                        continue;
+                    }
+                    
+                    const csvText = await response.text();
+                    const data = parseCSV(csvText);
+                    
+                    // Aggregate data by route
+                    for (const row of data) {
+                        const origin = row.origin?.trim();
+                        const destination = row.destination?.trim();
+                        const ridership = parseInt(row.ridership) || 0;
+                        
+                        if (!origin || !destination) continue;
+                        
+                        // Create route key (alphabetical order)
+                        const routeKey = origin < destination ? 
+                            `${origin}-${destination}` : 
+                            `${destination}-${origin}`;
+                        
+                        if (!routeData.has(routeKey)) {
+                            routeData.set(routeKey, {
+                                origin: origin,
+                                destination: destination,
+                                services: new Map(),
+                                totalRidership: 0,
+                                hourlyData: new Map() // Track ridership by hour (0-23)
+                            });
+                        }
+                        
+                        const route = routeData.get(routeKey);
+                        
+                        if (!route.services.has(key)) {
+                            route.services.set(key, { ridership: 0, records: 0 });
+                        }
+                        
+                        route.services.get(key).ridership += ridership;
+                        route.services.get(key).records += 1;
+                        route.totalRidership += ridership;
+                        
+                        // Track hourly data
+                        const time = row.time?.trim();
+                        const hour = time ? parseInt(time.split(':')[0]) : null;
+                        if (hour !== null) {
+                            if (!route.hourlyData.has(hour)) {
+                                route.hourlyData.set(hour, 0);
+                            }
+                            route.hourlyData.set(hour, route.hourlyData.get(hour) + ridership);
+                        }
+                    }
+                    
+                    console.log(`✅ Loaded ${key}: ${data.length} records`);
+                } catch (error) {
+                    console.error(`❌ Error loading ${service.file}:`, error);
+                }
+            }
+            
+            // Convert to array
+            allRoutes = Array.from(routeData.values())
+                .filter(r => stationCoordinates[r.origin] && stationCoordinates[r.destination])
+                .sort((a, b) => b.totalRidership - a.totalRidership);
+            
+            loadingProgress.updateProgress(80, `Loaded ${allRoutes.length} routes`);
+            console.log(`✅ Aggregated ${allRoutes.length} unique routes`);
+            
+            return allRoutes;
+        }
+
+        // Function to darken a hex color
+        function darkenColor(hexColor, percent = 30) {
+            const num = parseInt(hexColor.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.max(0, (num >> 16) - amt);
+            const G = Math.max(0, (num >> 8 & 0x00FF) - amt);
+            const B = Math.max(0, (num & 0x0000FF) - amt);
+            return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+
+        // Create station markers
+        function createStationMarkers() {
+            // Clear existing markers
+            stationMarkers.forEach(marker => map.removeLayer(marker));
+            stationMarkers = [];
+            
+            // Find all unique stations in current routes
+            const visibleRoutes = getVisibleRoutes();
+            const stations = new Map();
+            
+            for (const route of visibleRoutes) {
+                if (!stations.has(route.origin)) {
+                    stations.set(route.origin, { ridership: 0, services: new Set() });
+                }
+                if (!stations.has(route.destination)) {
+                    stations.set(route.destination, { ridership: 0, services: new Set() });
+                }
+                
+                stations.get(route.origin).ridership += route.totalRidership / 2;
+                stations.get(route.destination).ridership += route.totalRidership / 2;
+                
+                // Track which services use this station
+                for (const serviceKey of route.services.keys()) {
+                    stations.get(route.origin).services.add(serviceKey);
+                    stations.get(route.destination).services.add(serviceKey);
+                }
+            }
+            
+            // Find max ridership for scaling
+            const maxRidership = Math.max(...Array.from(stations.values()).map(s => s.ridership), 1);
+            
+            // Create markers for visible stations
+            for (const [stationName, data] of stations) {
+                const coords = stationCoordinates[stationName];
+                if (!coords) continue;
+                
+                // All stations use the same color
+                const stationColor = '#f67280';
+                
+                const radius = 5 + (data.ridership / maxRidership) * 15;
+                
+                const marker = L.circleMarker(
+                    [coords.lat, coords.lng],
+                    {
+                        color: stationColor,
+                        fillColor: stationColor,
+                        fillOpacity: 0.8,
+                        radius: radius,
+                        weight: 1,
+                        opacity: 0.8
+                    }
+                ).addTo(map);
+                
+                // Find all routes connected to this station
+                const connectedRoutes = [];
+                for (const route of visibleRoutes) {
+                    if (route.origin === stationName || route.destination === stationName) {
+                        connectedRoutes.push(route);
+                    }
+                }
+                
+                // Sort by ridership descending
+                connectedRoutes.sort((a, b) => b.totalRidership - a.totalRidership);
+                
+                // Find max ridership for frequency meter
+                const maxRouteRidership = Math.max(...connectedRoutes.map(r => r.totalRidership), 1);
+                
+                // Create routes list with frequency meters
+                const routesHtml = connectedRoutes.map((route, idx) => {
+                    const otherStation = route.origin === stationName ? route.destination : route.origin;
+                    const frequency = (route.totalRidership / maxRouteRidership) * 100;
+                    const meterColor = '#c06c84';
+                    
+                    return `
+                        <div style="margin: 8px 0; padding: 6px 0; border-bottom: 1px solid #f0f0f0;">
+                            <div style="font-size: 11px; font-weight: 600; color: #333; margin-bottom: 4px;">
+                                → ${otherStation}
+                            </div>
+                            <div style="font-size: 10px; color: #999; margin-bottom: 3px;">
+                                ${route.totalRidership.toLocaleString()} riders
+                            </div>
+                            <div style="width: 100%; height: 6px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: ${frequency}%; background: linear-gradient(90deg, #c06c84 0%, #f8b195 100%); transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click event for custom popup
+                marker.on('click', function(e) {
+                    // Close any existing popup
+                    const existingPopup = document.getElementById('station-popup');
+                    if (existingPopup) existingPopup.remove();
+                    
+                    // Create custom popup
+                    const popup = document.createElement('div');
+                    popup.id = 'station-popup';
+                    popup.style.cssText = `
+                        position: absolute;
+                        background: rgba(255, 255, 255, 0.98);
+                        border: 2px solid grey;
+                        border-radius: 4px;
+                        padding: 16px;
+                        max-width: 320px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                        z-index: 10001;
+                        font-family: 'Gotham', sans-serif;
+                        pointer-events: auto;
+                    `;
+                    
+                    popup.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <h3 style="margin: 0 0 4px 0; font-size: 14px; color: #333;">${stationName}</h3>
+                            <button onclick="document.getElementById('station-popup').remove()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #999; padding: 0; margin: -4px -4px 0 0;">×</button>
+                        </div>
+                        <p style="margin: 0 0 8px 0; font-size: 11px; color: #666;">${coords.state}</p>
+                        <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">
+                            <div style="font-size: 10px; color: #999;">Total ridership: <strong>${Math.round(data.ridership).toLocaleString()}</strong></div>
+                            <div style="font-size: 10px; color: #999;">Connected routes: <strong>${connectedRoutes.length}</strong></div>
+                        </div>
+                        <div style="font-size: 10px; color: #c06c84; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;">Routes from this station</div>
+                        <div style="max-height: 240px; overflow-y: scroll; overflow-x: hidden; padding-right: 8px;">
+                            ${routesHtml}
+                        </div>
+                    `;
+                    
+                    map.getContainer().appendChild(popup);
+                    
+                    // Prevent map scrolling when scrolling inside popup
+                    const scrollableDiv = popup.querySelector('div[style*="max-height"]');
+                    if (scrollableDiv) {
+                        scrollableDiv.addEventListener('wheel', (e) => {
+                            e.stopPropagation();
+                        }, { passive: true });
+                    }
+                    
+                    // Position popup at the click location (above and to the right of marker)
+                    const markerPos = e.layerPoint;
+                    popup.style.left = (markerPos.x + 10) + 'px';
+                    popup.style.top = (markerPos.y - popup.offsetHeight - 15) + 'px';
+                    
+                    // Adjust if popup goes off screen
+                    setTimeout(() => {
+                        const rect = popup.getBoundingClientRect();
+                        const mapRect = map.getContainer().getBoundingClientRect();
+                        
+                        if (rect.right > mapRect.right - 10) {
+                            popup.style.left = (markerPos.x - popup.offsetWidth - 10) + 'px';
+                        }
+                        if (rect.top < mapRect.top) {
+                            popup.style.top = (markerPos.y + 25) + 'px';
+                        }
+                    }, 0);
+                    
+                    // Close popup when clicking outside
+                    setTimeout(() => {
+                        document.addEventListener('click', function closePopup(e) {
+                            if (!popup.contains(e.target) && !marker.getElement()?.contains(e.target)) {
+                                popup.remove();
+                                document.removeEventListener('click', closePopup);
+                            }
+                        });
+                    }, 10);
+                });
+                
+                stationMarkers.push(marker);
+            }
+        }
+
+        // Create route lines
+        function createRouteLines() {
+            // Clear existing lines
+            routeLines.forEach(line => map.removeLayer(line));
+            routeLines = [];
+            
+            // Function to create curved arc between two points
+            function createArc(startCoords, endCoords, arcHeight = 0.25) {
+                const start = L.latLng(startCoords);
+                const end = L.latLng(endCoords);
+                
+                // Calculate the midpoint
+                const midLat = (start.lat + end.lat) / 2;
+                const midLng = (start.lng + end.lng) / 2;
+                
+                // Calculate distance for arc height
+                const distance = start.distanceTo(end);
+                const heightOffset = (distance * arcHeight) / 111320; // Convert to degrees
+                
+                // Create arc points
+                const arcPoints = [];
+                const segments = 20;
+                
+                for (let i = 0; i <= segments; i++) {
+                    const t = i / segments;
+                    const lat = start.lat + (end.lat - start.lat) * t;
+                    const lng = start.lng + (end.lng - start.lng) * t;
+                    
+                    // Add curved height (parabolic arc)
+                    const arcOffset = heightOffset * Math.sin(Math.PI * t);
+                    arcPoints.push([lat + arcOffset, lng]);
+                }
+                
+                return arcPoints;
+            }
+            
+            const visibleRoutes = getVisibleRoutes();
+            const maxRidership = Math.max(...visibleRoutes.map(r => r.totalRidership), 1);
+            
+            // Create hover handler function
+            function createHoverHandler(route, weight) {
+                return function() {
+                    this.setStyle({ opacity: 0.9 });
+                    
+                    // Build hourly chart data
+                    const hourlyArray = Array(24).fill(0);
+                    for (let h = 0; h < 24; h++) {
+                        hourlyArray[h] = route.hourlyData.get(h) || 0;
+                    }
+                    
+                    const chartId = 'hourly-chart-' + Math.random().toString(36).substr(2, 9);
+                    
+                    const html = `
+                        <div class="tooltip-content" style="width: 380px;">
+                            <h3>${route.origin} → ${route.destination}</h3>
+                            <div class="route-stats">
+                                <div class="route-stat">
+                                    <div class="route-stat-label">Total Ridership</div>
+                                    <div class="route-stat-value">${route.totalRidership.toLocaleString()}</div>
+                                </div>
+                                <div class="route-stat">
+                                    <div class="route-stat-label">Services</div>
+                                    <div class="route-stat-value">${route.services.size}</div>
+                                </div>
+                            </div>
+                            <h4 style="font-size: 10px; color: #c06c84; margin: 8px 0 6px 0; font-weight: 700; letter-spacing: 1px;">HOURLY JOURNEY RIDERSHIP</h4>
+                            <div style="height: 150px; margin-bottom: 10px;">
+                                <canvas id="${chartId}"></canvas>
+                            </div>
+                            <h4 style="font-size: 10px; color: #c06c84; margin: 8px 0 6px 0; font-weight: 700; letter-spacing: 1px;">SERVICE BREAKDOWN</h4>
+                            ${Array.from(route.services.entries()).map(([key, data]) => `
+                                <div style="margin: 4px 0; font-size: 11px;">
+                                    <span style="color: ${services[key].color}; font-weight: 700;">●</span> 
+                                    ${services[key].name}: <strong>${data.ridership.toLocaleString()}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    this.bindTooltip(html, { sticky: true, direction: 'top', offset: [0, -20] }).openTooltip();
+                    
+                    // Render chart after tooltip appears
+                    setTimeout(() => {
+                        const canvas = document.getElementById(chartId);
+                        if (canvas && typeof Chart !== 'undefined') {
+                            const ctx = canvas.getContext('2d');
+                            new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: Array.from({length: 24}, (_, i) => i + ':00'),
+                                    datasets: [{
+                                        label: 'Hourly Journeys',
+                                        data: hourlyArray,
+                                        backgroundColor: 'rgba(192, 108, 132, 0.7)',
+                                        borderColor: '#c06c84',
+                                        borderWidth: 1,
+                                        borderRadius: 2
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    indexAxis: 'x',
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: function(context) {
+                                                    return context.parsed.y.toLocaleString() + ' journeys';
+                                                }
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        x: {
+                                            ticks: {
+                                                font: { size: 9 },
+                                                maxRotation: 45,
+                                                minRotation: 45
+                                            }
+                                        },
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                font: { size: 9 },
+                                                callback: function(value) {
+                                                    return value.toLocaleString();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }, 100);
+                };
+            }
+            
+            for (const route of visibleRoutes) {
+                const originCoords = stationCoordinates[route.origin];
+                const destCoords = stationCoordinates[route.destination];
+                
+                if (!originCoords || !destCoords) continue;
+                
+                // Get service colors for this route
+                let routeColors = [];
+                let serviceKey = null;
+                
+                if (currentTab !== 'all') {
+                    if (route.services.has(currentTab)) {
+                        routeColors.push(services[currentTab].color);
+                    }
+                } else {
+                    // Collect all service colors for this route
+                    for (const [key, service] of Object.entries(services)) {
+                        if (route.services.has(key)) {
+                            routeColors.push(service.color);
+                        }
+                    }
+                }
+                
+                // Default to grey if no services found
+                if (routeColors.length === 0) {
+                    routeColors = ['#999'];
+                }
+                
+                // Calculate line weight based on ridership
+                const normalized = route.totalRidership / maxRidership;
+                const weight = 1 + (Math.pow(normalized, 0.6) * 8);
+                
+                // Create curved arc path
+                const arcPoints = createArc(
+                    [originCoords.lat, originCoords.lng],
+                    [destCoords.lat, destCoords.lng],
+                    0.2
+                );
+                
+                // If multiple services, draw longitudinal rainbow stripes; otherwise single color
+                if (routeColors.length > 1) {
+                    // Draw parallel colored lines for longitudinal rainbow effect
+                    const lineCount = routeColors.length;
+                    const totalWidth = weight;
+                    const stripeWidth = totalWidth / lineCount;
+                    
+                    // Store all stripes for this route to manage hover together
+                    const routeStripes = [];
+                    
+                    for (let colorIdx = 0; colorIdx < routeColors.length; colorIdx++) {
+                        // Calculate offset perpendicular to the arc
+                        const offsetFraction = (colorIdx - (lineCount - 1) / 2) * stripeWidth / 111320; // Convert to degrees
+                        
+                        // Create offset arc points
+                        const offsetArcPoints = arcPoints.map((point, idx) => {
+                            if (idx === 0 || idx === arcPoints.length - 1) {
+                                return point; // Keep endpoints unchanged
+                            }
+                            
+                            // Calculate perpendicular direction at this point
+                            const prevPoint = arcPoints[idx - 1];
+                            const nextPoint = arcPoints[idx + 1];
+                            
+                            // Direction vector along the arc
+                            const dx = nextPoint[1] - prevPoint[1];
+                            const dy = nextPoint[0] - prevPoint[0];
+                            const len = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (len === 0) return point;
+                            
+                            // Perpendicular vector (rotate 90 degrees)
+                            const perpX = -dy / len;
+                            const perpY = dx / len;
+                            
+                            return [
+                                point[0] + perpY * offsetFraction,
+                                point[1] + perpX * offsetFraction
+                            ];
+                        });
+                        
+                        const line = L.polyline(
+                            offsetArcPoints,
+                            {
+                                color: routeColors[colorIdx],
+                                weight: Math.max(1, stripeWidth),
+                                opacity: 0.4,
+                                smoothFactor: 1.0
+                            }
+                        ).addTo(map);
+                        
+                        // Store base weight for zoom handling
+                        line.baseWeight = Math.max(1, stripeWidth);
+                        line.routeData = route;
+                        line.routeStripes = routeStripes; // Link to stripe group
+                        
+                        // Hover handler for multi-service routes
+                        line.on('mouseover', function() {
+                            // Highlight all stripes of this route together
+                            this.routeStripes.forEach(stripe => {
+                                stripe.setStyle({ opacity: 0.9 });
+                            });
+                            
+                            // Show tooltip only once for the route
+                            createHoverHandler(route, weight).call(this);
+                        });
+                        
+                        line.on('mouseout', function() {
+                            // Restore all stripes together
+                            this.routeStripes.forEach(stripe => {
+                                stripe.setStyle({ opacity: 0.4 });
+                            });
+                            this.closeTooltip();
+                            this.unbindTooltip();
+                        });
+                        
+                        routeStripes.push(line);
+                        routeLines.push(line);
+                    }
+                } else {
+                    // Single color line
+                    const line = L.polyline(
+                        arcPoints,
+                        {
+                            color: routeColors[0],
+                            weight: weight,
+                            opacity: 0.4,
+                            smoothFactor: 1.0
+                        }
+                    ).addTo(map);
+                
+                    // Store base weight for zoom handling
+                    line.baseWeight = weight;
+                    line.routeData = route;
+                    
+                    // Add hover effect using shared handler
+                    line.on('mouseover', createHoverHandler(route, weight));
+                    line.on('mouseout', function() {
+                        this.setStyle({ opacity: 0.4 });
+                        this.closeTooltip();
+                        this.unbindTooltip();
+                    });
+                    
+                    routeLines.push(line);
+                }
+            }
+        }
+
+        // Handle zoom-based line thickness
+        map.on('zoomend', function() {
+            const currentZoom = map.getZoom();
+            const zoomFactor = Math.max(1, (currentZoom - 5) / 3); // Increase thickness after zoom 5
+            
+            routeLines.forEach(line => {
+                const newWeight = line.baseWeight * zoomFactor;
+                line.setStyle({ weight: newWeight });
+            });
+        });
+
+        // Get visible routes based on current tab
+        function getVisibleRoutes() {
+            if (currentTab === 'all') {
+                return allRoutes;
+            } else {
+                return allRoutes.filter(r => r.services.has(currentTab));
+            }
+        }
+
+        // Update map visualization
+        function updateVisualization() {
+            createRouteLines();
+            createStationMarkers();  // Redraw after lines so stations appear on top
+            updateStats();
+        }
+
+        // Update statistics display
+        function updateStats() {
+            const visibleRoutes = getVisibleRoutes();
+            const totalRidership = visibleRoutes.reduce((sum, r) => sum + r.totalRidership, 0);
+            const avgRidership = visibleRoutes.length > 0 ? 
+                Math.round(totalRidership / visibleRoutes.length) : 0;
+            
+            document.getElementById('titleText').textContent = 
+                currentTab === 'all' ? 'ALL SERVICES' : services[currentTab].name;
+            document.getElementById('titleSubtext').textContent = 
+                currentTab === 'all' ? 
+                'Data from Malaysia Open Data' : 
+                services[currentTab].description;
+            
+            const statsHtml = `
+                <div class="stat-box">
+                    <div class="stat-label">Routes</div>
+                    <div class="stat-value">${visibleRoutes.length}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Riders</div>
+                    <div class="stat-value">${(totalRidership / 1000000).toFixed(1)}M</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Avg/Route</div>
+                    <div class="stat-value">${(avgRidership / 1000).toFixed(0)}K</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Top Route</div>
+                    <div class="stat-value">${visibleRoutes.length > 0 ? 
+                        (visibleRoutes[0].totalRidership / 1000).toFixed(0) + 'K' : '—'}</div>
+                </div>
+            `;
+            
+            document.getElementById('statsGrid').innerHTML = statsHtml;
+            
+            // Populate top 5 routes
+            const top5Routes = visibleRoutes.slice(0, 5);
+            const topRoutesHtml = `
+                <div class="top-routes-label">TOP 5 BUSIEST ROUTES</div>
+                ${top5Routes.map((route, idx) => `
+                    <div class="top-route-item">
+                        <div class="top-route-name">${idx + 1}. ${route.origin} → ${route.destination}</div>
+                        <div class="top-route-riders">${route.totalRidership.toLocaleString()} riders</div>
+                    </div>
+                `).join('')}
+            `;
+            document.getElementById('topRoutesContainer').innerHTML = topRoutesHtml;
+        }
+
+        // Tab selection event listeners
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                currentTab = this.dataset.tab;
+                
+                // Update active button
+                document.querySelectorAll('.tab-btn').forEach(b => 
+                    b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update map
+                updateVisualization();
+                
+                // Zoom to service network bounds
+                if (currentTab !== 'all') {
+                    const visibleRoutes = getVisibleRoutes();
+                    if (visibleRoutes.length > 0) {
+                        // Calculate bounds from all stations in visible routes
+                        const bounds = L.latLngBounds([]);
+                        
+                        for (const route of visibleRoutes) {
+                            const originCoords = stationCoordinates[route.origin];
+                            const destCoords = stationCoordinates[route.destination];
+                            
+                            if (originCoords) bounds.extend([originCoords.lat, originCoords.lng]);
+                            if (destCoords) bounds.extend([destCoords.lat, destCoords.lng]);
+                        }
+                        
+                        // Fit map to bounds with padding
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds, { padding: [100, 100] });
+                        }
+                    }
+                } else {
+                    // Reset to full West Malaysia view
+                    map.setView([4.2105, 101.6964], 6);
+                }
+            });
+        });
+
+        // Initialize
+        setTimeout(async () => {
+            await loadAllServices();
+            loadingProgress.updateProgress(90, 'Rendering visualization...');
+            
+            updateVisualization();
+            
+            loadingProgress.updateProgress(100, 'Complete!');
+            loadingProgress.complete();
+        }, 500);
+    </script>
+</body>
+</html>
